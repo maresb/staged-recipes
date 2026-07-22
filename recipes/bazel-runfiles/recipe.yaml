@@ -1,0 +1,67 @@
+schema_version: 1
+
+context:
+  version: "2.2.0"
+
+package:
+  name: bazel-runfiles
+  version: ${{ version }}
+
+source:
+  # The runfiles library lives in the rules_python repo, which builds its PyPI
+  # wheel with Bazel's own py_wheel rule and so carries no Python packaging
+  # metadata of its own. Rather than building with Bazel, we drop the minimal
+  # pyproject.toml shipped next to this recipe into the source tree and let
+  # pip/setuptools do the rest; the version is injected via
+  # SETUPTOOLS_SCM_PRETEND_VERSION in the build script below.
+  # Metadata correctness is ensured by test_wheel_parity.py below under tests.
+  - url: https://github.com/bazel-contrib/rules_python/releases/download/${{ version }}/rules_python-${{ version }}.tar.gz
+    sha256: e11d2e1efce1589e5bdfa93986712c74fc7467a0f093143d489d2ef5ebb1ed2a
+  - path: pyproject.toml
+    target_directory: python/runfiles
+
+build:
+  noarch: python
+  number: 0
+  script:
+    content: python -m pip install ./python/runfiles --no-deps --no-build-isolation -vv
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+    - setuptools-scm
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - runfiles
+      python_version: ${{ python_min }}.*
+      pip_check: true
+  # Compare the installed payload and metadata against the Bazel-built wheel
+  # upstream publishes to PyPI, so any upstream packaging change is caught
+  # here instead of drifting silently.
+  - script:
+      - python test_wheel_parity.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    files:
+      recipe:
+        - test_wheel_parity.py
+
+about:
+  homepage: https://github.com/bazel-contrib/rules_python
+  summary: A Bazel Runfiles lookup library for Bazel-built Python binaries and tests.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/bazel-contrib/rules_python
+
+extra:
+  recipe-maintainers:
+    - ctcjab
