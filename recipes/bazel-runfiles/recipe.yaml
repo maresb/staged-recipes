@@ -42,6 +42,16 @@ tests:
         - runfiles
       python_version: ${{ python_min }}.*
       pip_check: true
+  # Compare the installed payload and metadata against the Bazel-built wheel
+  # upstream publishes to PyPI, so any upstream packaging change is caught
+  # here instead of drifting silently.
+  - script: python test_wheel_parity.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    files:
+      recipe:
+        - test_wheel_parity.py
 
 about:
   homepage: https://github.com/bazel-contrib/rules_python
